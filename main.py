@@ -3,7 +3,6 @@ import configparser
 import os
 import time
 
-from openai import OpenAI
 from requests import Session
 from typing import TypeVar, Generator
 import io
@@ -14,7 +13,6 @@ from tqdm import tqdm
 from arxiv_scraper import get_papers_from_arxiv_rss_api
 from filter_papers import filter_by_author, filter_by_gpt
 from parse_json_to_md import render_md_string
-from push_to_slack import push_to_slack
 from arxiv_scraper import EnhancedJSONEncoder
 
 T = TypeVar("T")
@@ -186,12 +184,16 @@ if __name__ == "__main__":
     config.read("configs/config.ini")
 
     S2_API_KEY = os.environ.get("S2_KEY")
-    OAI_KEY = os.environ.get("OAI_KEY")
-    if OAI_KEY is None:
+    # LiteLLM automatically reads API keys from environment variables
+    # For Claude: ANTHROPIC_API_KEY
+    # For OpenAI: OPENAI_API_KEY (or OAI_KEY for backwards compatibility)
+    API_KEY = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("OPENAI_API_KEY") or os.environ.get("OAI_KEY")
+    if API_KEY is None:
         raise ValueError(
-            "OpenAI key is not set - please set OAI_KEY to your OpenAI key"
+            "API key is not set - please set ANTHROPIC_API_KEY (for Claude) or OPENAI_API_KEY (for OpenAI)"
         )
-    openai_client = OpenAI(api_key=OAI_KEY)
+    # LiteLLM doesn't need a client object - kept for backwards compatibility
+    openai_client = None
     # load the author list
     with io.open("configs/authors.txt", "r") as fopen:
         author_names, author_ids = parse_authors(fopen.readlines())
@@ -251,12 +253,3 @@ if __name__ == "__main__":
         if config["OUTPUT"].getboolean("dump_md"):
             with open(config["OUTPUT"]["output_path"] + "output.md", "w") as f:
                 f.write(render_md_string(selected_papers))
-        # only push to slack for non-empty dicts
-        if config["OUTPUT"].getboolean("push_to_slack"):
-            SLACK_KEY = os.environ.get("SLACK_KEY")
-            if SLACK_KEY is None:
-                print(
-                    "Warning: push_to_slack is true, but SLACK_KEY is not set - not pushing to slack"
-                )
-            else:
-                push_to_slack(selected_papers)

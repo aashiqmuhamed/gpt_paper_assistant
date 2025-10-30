@@ -7,3 +7,25 @@ Christopher D. Manning, 144783904
 Chris Potts, 1741530
 Diyi Yang, 2022168
 Monica Lam, 39682108
+
+# Mechanistic Interpretability and AI Safety Researchers
+Chris Olah, 2063022
+Neel Nanda, 2239729795
+Catherine Olsson, 1396166029
+Tom Brown, 31035595
+Sam Bowman, 2334290
+Jacob Steinhardt, 47251516
+David Bau, 143792668
+Kevin Meng, 2110878710
+Stella Biderman, 116080619
+Robert Kirk, 2047875124
+Owain Evans, 145265155
+Roger Grosse, 1693435
+David Duvenaud, 2514101
+Dan Hendrycks, 48992088
+Anthropic, 2298084599
+Nicholas Carlini, 2439210
+Martin Wattenberg, 153302110
+Jesse Engel, 48259598
+Tom Conerly, 2239733662
+Buck Shlegeris, 2239752348

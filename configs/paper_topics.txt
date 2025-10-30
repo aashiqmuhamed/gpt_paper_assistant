@@ -16,6 +16,36 @@
  6. Studies 'scaling laws' in the context of neural networks. Scaling laws refer to the very clear power-law relationship between the size or computational power used to train a model and the performance of that model.
     - Relevant: theoretical or conceptual explanation behind scaling laws for language models.
     - Not relevant: papers that have experiments at different model scales (but do not explicitly fit a scaling law) or papers that mention scaling laws, but the scaling laws are not the central subject of the paper
+ 7. Presents new methods or improvements for sparse autoencoders in neural network interpretability. Sparse autoencoders are unsupervised learning techniques that learn sparse representations of neural network activations to understand what features networks detect.
+    - Relevant: papers that explicitly mention sparse autoencoders, sparse coding, or sparse feature extraction applied to understanding neural networks, language models, or other AI systems.
+    - Not relevant: papers about general autoencoders without sparsity constraints, or sparse methods not applied to interpretability.
+ 8. Demonstrates new mechanistic interpretability techniques or discoveries about how neural networks work internally. Mechanistic interpretability seeks to understand the algorithms and circuits that neural networks learn.
+    - Relevant: papers about circuit analysis, feature visualization, activation patching, causal interventions on neural networks, or reverse-engineering specific algorithms learned by models.
+    - Not relevant: papers that only do black-box analysis or correlation studies without mechanistic understanding.
+ 9. Shows advances in machine unlearning techniques for removing specific knowledge or behaviors from trained models.
+    - Relevant: papers on forgetting specific data, removing harmful capabilities, or selectively editing model knowledge while preserving other capabilities.
+    - Not relevant: papers about general model editing or fine-tuning without specific unlearning focus.
+ 10. Presents methods for tamper resistance, robustness against adversarial modifications, or secure AI systems.
+    - Relevant: papers on preventing model poisoning, backdoor attacks, or making AI systems resistant to tampering or manipulation.
+    - Not relevant: papers only about general adversarial robustness without security/tamper resistance focus.
+ 11. Studies AI alignment techniques, value learning, or methods to ensure AI systems behave according to human values and intentions.
+    - Relevant: papers on reward modeling, constitutional AI, value alignment, or techniques to make AI systems more aligned with human preferences.
+    - Not relevant: papers focused only on performance improvement without alignment considerations.
+ 12. Advances in LLM reasoning capabilities, chain-of-thought reasoning, or understanding how language models perform complex reasoning tasks.
+    - Relevant: papers on step-by-step reasoning, logical inference in LLMs, reasoning chain analysis, or methods to improve reasoning capabilities.
+    - Not relevant: papers about reasoning in non-LLM contexts or that don't focus on reasoning mechanisms.
+ 13. Presents new methods for AI control, oversight, or monitoring of AI system behavior during deployment.
+    - Relevant: papers on AI governance techniques, monitoring systems, control mechanisms, or methods to maintain oversight of deployed AI systems.
+    - Not relevant: papers focused only on training-time controls without deployment considerations.
+ 14. Shows advances in chain-of-thought monitoring, reasoning transparency, or methods to understand AI decision-making processes.
+    - Relevant: papers on monitoring reasoning chains, making AI reasoning more transparent, or techniques to track how models arrive at conclusions.
+    - Not relevant: papers about general explainability without specific focus on reasoning processes.
+ 15. Studies ControlArena, Inspect framework, or similar evaluation platforms for AI safety and control.
+    - Relevant: papers using or extending these evaluation frameworks, comparative studies using these platforms, or methodological improvements to these tools.
+    - Not relevant: papers that mention these tools only in passing without substantial use or analysis.
+ 16. Advances in latent reasoning, implicit reasoning processes, or understanding hidden computational processes in neural networks.
+    - Relevant: papers on uncovering implicit reasoning, analyzing hidden computational steps, or methods to make latent reasoning processes more explicit.
+    - Not relevant: papers about explicit reasoning without focus on hidden or latent processes.
 
  In suggesting papers to your friend, remember that he enjoys papers on statistical machine learning, and generative modeling in natural language processing.
  Your friend also likes learning about surprising empirical results in language models, as well as clever statistical tricks.

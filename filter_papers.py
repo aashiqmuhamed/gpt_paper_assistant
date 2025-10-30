@@ -5,7 +5,7 @@ import re
 from typing import List
 
 import retry
-from openai import OpenAI
+from litellm import completion
 from tqdm import tqdm
 
 from arxiv_scraper import Paper
@@ -52,17 +52,28 @@ def filter_papers_by_hindex(all_authors, papers, config):
 
 
 def calc_price(model, usage):
+    # OpenAI pricing
     if model == "gpt-4-1106-preview":
         return (0.01 * usage.prompt_tokens + 0.03 * usage.completion_tokens) / 1000.0
     if model == "gpt-4":
         return (0.03 * usage.prompt_tokens + 0.06 * usage.completion_tokens) / 1000.0
     if (model == "gpt-3.5-turbo") or (model == "gpt-3.5-turbo-1106"):
         return (0.0015 * usage.prompt_tokens + 0.002 * usage.completion_tokens) / 1000.0
+    # Claude pricing (Anthropic API)
+    if "claude-3-5-sonnet" in model:
+        return (0.003 * usage.prompt_tokens + 0.015 * usage.completion_tokens) / 1000.0
+    if "claude-3-opus" in model:
+        return (0.015 * usage.prompt_tokens + 0.075 * usage.completion_tokens) / 1000.0
+    if "claude-3-haiku" in model:
+        return (0.00025 * usage.prompt_tokens + 0.00125 * usage.completion_tokens) / 1000.0
+    # Default fallback
+    return 0.0
 
 
 @retry.retry(tries=3, delay=2)
 def call_chatgpt(full_prompt, openai_client, model):
-    return openai_client.chat.completions.create(
+    # Using LiteLLM's unified API - openai_client parameter kept for backwards compatibility
+    return completion(
         model=model,
         messages=[{"role": "user", "content": full_prompt}],
         temperature=0.0,
@@ -241,7 +252,8 @@ if __name__ == "__main__":
     keyconfig = configparser.ConfigParser()
     keyconfig.read("configs/keys.ini")
     S2_API_KEY = keyconfig["KEYS"]["semanticscholar"]
-    openai_client = OpenAI(api_key=keyconfig["KEYS"]["openai"])
+    # LiteLLM doesn't need a client - it uses environment variables
+    openai_client = None  # Kept for backwards compatibility with function signatures
     # deal with config parsing
     with open("configs/base_prompt.txt", "r") as f:
         base_prompt = f.read()

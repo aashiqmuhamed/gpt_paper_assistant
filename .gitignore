@@ -1,7 +1,36 @@
-# dont commit the actual api keys or other personal info to the public github
-#configs/authors.txt
+# API Keys and Secrets - NEVER COMMIT THESE!
+.env
+.env.local
 configs/keys.ini
-#configs/paper_topics.txt
-# dont commit venv and ide stuff
-venv
-.idea
+*.key
+*.pem
+
+# Logs may contain sensitive info
+logs/
+*.log
+
+# Output files (optional - uncomment if you don't want to commit paper results)
+#out/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
