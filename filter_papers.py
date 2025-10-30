@@ -73,12 +73,18 @@ def calc_price(model, usage):
 @retry.retry(tries=3, delay=2)
 def call_chatgpt(full_prompt, openai_client, model):
     # Using LiteLLM's unified API - openai_client parameter kept for backwards compatibility
-    return completion(
-        model=model,
-        messages=[{"role": "user", "content": full_prompt}],
-        temperature=0.0,
-        seed=0,
-    )
+    # Note: seed parameter only works with OpenAI models, not Claude
+    kwargs = {
+        "model": model,
+        "messages": [{"role": "user", "content": full_prompt}],
+        "temperature": 0.0,
+    }
+
+    # Only add seed for OpenAI models (Claude doesn't support it)
+    if "gpt" in model.lower():
+        kwargs["seed"] = 0
+
+    return completion(**kwargs)
 
 
 def run_and_parse_chatgpt(full_prompt, openai_client, config):
