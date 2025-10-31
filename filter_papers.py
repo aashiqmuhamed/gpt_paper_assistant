@@ -227,7 +227,7 @@ def filter_by_gpt(
                 if (
                     int(jdict["RELEVANCE"])
                     >= int(config["FILTERING"]["relevance_cutoff"])
-                    and jdict["NOVELTY"] >= int(config["FILTERING"]["novelty_cutoff"])
+                    and int(jdict["NOVELTY"]) >= int(config["FILTERING"]["novelty_cutoff"])
                     and jdict["ARXIVID"] in all_papers
                 ):
                     selected_papers[jdict["ARXIVID"]] = {
