@@ -62,11 +62,13 @@ def calc_price(model, usage):
     if (model == "gpt-3.5-turbo") or (model == "gpt-3.5-turbo-1106"):
         return (0.0015 * usage.prompt_tokens + 0.002 * usage.completion_tokens) / 1000.0
     # Claude pricing (Anthropic API)
-    if "claude-3-5-sonnet" in model:
+    if "claude-3-5-sonnet" in model or "claude-3-7-sonnet" in model:
+        return (0.003 * usage.prompt_tokens + 0.015 * usage.completion_tokens) / 1000.0
+    if "sonnet-4" in model:
         return (0.003 * usage.prompt_tokens + 0.015 * usage.completion_tokens) / 1000.0
     if "claude-3-opus" in model:
         return (0.015 * usage.prompt_tokens + 0.075 * usage.completion_tokens) / 1000.0
-    if "claude-3-haiku" in model:
+    if "haiku" in model:
         return (0.00025 * usage.prompt_tokens + 0.00125 * usage.completion_tokens) / 1000.0
     # Default fallback
     return 0.0
