@@ -70,7 +70,7 @@ def calc_price(model, usage):
     return 0.0
 
 
-@retry.retry(tries=3, delay=2)
+@retry.retry(tries=5, delay=50, backoff=2)
 def call_chatgpt(full_prompt, openai_client, model):
     # Using LiteLLM's unified API - openai_client parameter kept for backwards compatibility
     # Note: seed parameter only works with OpenAI models, not Claude
@@ -234,7 +234,7 @@ def filter_by_gpt(
                         **dataclasses.asdict(all_papers[jdict["ARXIVID"]]),
                         **jdict,
                     }
-                    sort_dict[jdict["ARXIVID"]] = jdict["RELEVANCE"] + jdict["NOVELTY"]
+                    sort_dict[jdict["ARXIVID"]] = int(jdict["RELEVANCE"]) + int(jdict["NOVELTY"])
                 scored_in_batch.append(
                     {
                         **dataclasses.asdict(all_papers[jdict["ARXIVID"]]),
@@ -299,7 +299,7 @@ if __name__ == "__main__":
                 **dataclasses.asdict(all_papers[jdict["ARXIVID"]]),
                 **jdict,
             }
-            sort_dict[jdict["ARXIVID"]] = jdict["RELEVANCE"] + jdict["NOVELTY"]
+            sort_dict[jdict["ARXIVID"]] = int(jdict["RELEVANCE"]) + int(jdict["NOVELTY"])
 
         # sort the papers by relevance and novelty
     print("total cost:" + str(total_cost))
