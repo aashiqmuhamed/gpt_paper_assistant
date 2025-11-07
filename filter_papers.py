@@ -3,9 +3,11 @@ import dataclasses
 import json
 import re
 from typing import List
+import time
 
 import retry
 from litellm import completion
+from litellm.exceptions import InternalServerError, RateLimitError
 from tqdm import tqdm
 
 from arxiv_scraper import Paper
@@ -70,10 +72,11 @@ def calc_price(model, usage):
     return 0.0
 
 
-@retry.retry(tries=5, delay=50, backoff=2)
+@retry.retry(tries=8, delay=60, backoff=2, max_delay=600)
 def call_chatgpt(full_prompt, openai_client, model):
     # Using LiteLLM's unified API - openai_client parameter kept for backwards compatibility
     # Note: seed parameter only works with OpenAI models, not Claude
+    # Retry logic: 60s, 120s, 240s, 480s, 600s, 600s, 600s delays for API overload
     kwargs = {
         "model": model,
         "messages": [{"role": "user", "content": full_prompt}],
@@ -84,7 +87,17 @@ def call_chatgpt(full_prompt, openai_client, model):
     if "gpt" in model.lower():
         kwargs["seed"] = 0
 
-    return completion(**kwargs)
+    try:
+        return completion(**kwargs)
+    except (InternalServerError, RateLimitError) as e:
+        # Log overload/rate limit errors more clearly
+        if "overloaded" in str(e).lower():
+            print(f"API is overloaded, will retry with exponential backoff...")
+        elif "rate" in str(e).lower():
+            print(f"Rate limit hit, will retry with exponential backoff...")
+        else:
+            print(f"API error: {e}")
+        raise  # Re-raise so retry decorator can handle it
 
 
 def run_and_parse_chatgpt(full_prompt, openai_client, config):

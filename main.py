@@ -94,7 +94,7 @@ def get_author_batch(
         return response.json()
 
 
-@retry(tries=3, delay=2.0)
+@retry(tries=5, delay=5.0, backoff=2, max_delay=60)
 def get_one_author(session, author: str, S2_API_KEY: str) -> str:
     # query the right endpoint https://api.semanticscholar.org/graph/v1/author/search?query=adam+smith
     params = {"query": author, "fields": "authorId,name,hIndex", "limit": "10"}
@@ -109,16 +109,22 @@ def get_one_author(session, author: str, S2_API_KEY: str) -> str:
         params=params,
         headers=headers,
     ) as response:
-        # try catch for errors
-        try:
-            response.raise_for_status()
-            response_json = response.json()
-            if len(response_json["data"]) >= 1:
-                return response_json["data"]
-            else:
-                return None
-        except Exception as ex:
-            print("exception happened" + str(ex))
+        # Check status and provide detailed error info
+        if response.status_code == 429:
+            print(f"Rate limited for author: {author}")
+            response.raise_for_status()  # Let retry decorator handle it
+        elif response.status_code == 400:
+            print(f"Bad request for author: {author} (possibly encoding issue)")
+            print(f"  URL: {response.url}")
+            return None  # Don't retry formatting errors
+        elif response.status_code >= 400:
+            print(f"HTTP {response.status_code} error for author: {author}")
+            response.raise_for_status()  # Let retry decorator handle it
+
+        response_json = response.json()
+        if len(response_json["data"]) >= 1:
+            return response_json["data"]
+        else:
             return None
 
 
@@ -143,12 +149,12 @@ def get_authors(
             auth_map = get_one_author(session, author, S2_API_KEY)
             if auth_map is not None:
                 author_metadata_dict[author] = auth_map
-            # add a 20ms wait time to avoid rate limiting
-            # otherwise, semantic scholar aggressively rate limits, so do 1s
+            # Semantic Scholar rate limits: ~100 req/5min with key, ~60 req/5min without
+            # Use conservative delays to avoid hitting limits
             if S2_API_KEY is not None:
-                time.sleep(0.02)
+                time.sleep(3.0)  # ~20 requests/minute with API key
             else:
-                time.sleep(1.0)
+                time.sleep(5.0)  # ~12 requests/minute without API key
     return author_metadata_dict
 
 
