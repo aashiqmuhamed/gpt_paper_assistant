@@ -127,6 +127,23 @@ def run_and_parse_chatgpt(full_prompt, openai_client, config):
     return json_dicts, calc_price(config["SELECTION"]["model"], completion.usage)
 
 
+def sanitize_unicode(text: str) -> str:
+    # Replace problematic Unicode characters with ASCII equivalents
+    replacements = {
+        '\u2014': '--',  # em dash
+        '\u2013': '-',   # en dash
+        '\u2018': "'",   # left single quote
+        '\u2019': "'",   # right single quote
+        '\u201c': '"',   # left double quote
+        '\u201d': '"',   # right double quote
+        '\u2026': '...',  # ellipsis
+    }
+    for unicode_char, ascii_char in replacements.items():
+        text = text.replace(unicode_char, ascii_char)
+    # Encode to ASCII, replacing any remaining non-ASCII chars
+    return text.encode('ascii', errors='replace').decode('ascii')
+
+
 def paper_to_string(paper_entry: Paper) -> str:
     # renders each paper into a string to be processed by GPT
     new_str = (
@@ -134,13 +151,13 @@ def paper_to_string(paper_entry: Paper) -> str:
         + paper_entry.arxiv_id
         + "\n"
         + "Title: "
-        + paper_entry.title
+        + sanitize_unicode(paper_entry.title)
         + "\n"
         + "Authors: "
         + " and ".join(paper_entry.authors)
         + "\n"
         + "Abstract: "
-        + paper_entry.abstract[:4000]
+        + sanitize_unicode(paper_entry.abstract[:4000])
     )
     return new_str
 
@@ -182,7 +199,7 @@ def filter_papers_by_title(
 
 
 def paper_to_titles(paper_entry: Paper) -> str:
-    return "ArXiv ID: " + paper_entry.arxiv_id + " Title: " + paper_entry.title + "\n"
+    return "ArXiv ID: " + paper_entry.arxiv_id + " Title: " + sanitize_unicode(paper_entry.title) + "\n"
 
 
 def run_on_batch(
