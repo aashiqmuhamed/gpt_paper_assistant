@@ -28,6 +28,9 @@ jobs:
       env:
         ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         S2_KEY: ${{ secrets.S2_KEY }}
+        PYTHONIOENCODING: utf-8
+        LC_ALL: C.UTF-8
+        LANG: C.UTF-8
       run: |
         python main.py
     - name: Upload results
