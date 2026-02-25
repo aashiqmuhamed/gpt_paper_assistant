@@ -46,6 +46,15 @@
  16. Advances in latent reasoning, implicit reasoning processes, or understanding hidden computational processes in neural networks.
     - Relevant: papers on uncovering implicit reasoning, analyzing hidden computational steps, or methods to make latent reasoning processes more explicit.
     - Not relevant: papers about explicit reasoning without focus on hidden or latent processes.
+ 17. Studies data poisoning attacks or defenses in machine learning systems.
+    - Relevant: papers on poisoning training data to manipulate model behavior, detecting poisoned data, or defending against data poisoning attacks.
+    - Not relevant: papers about general adversarial examples at inference time without training data manipulation.
+ 18. Advances in data-centric AI approaches that focus on improving data quality, curation, or data-driven methods for ML.
+    - Relevant: papers on data quality assessment, data selection, data augmentation strategies, curriculum learning based on data properties, or systematic approaches to dataset creation and curation.
+    - Not relevant: papers that simply use standard datasets without focusing on data-centric methodology.
+ 19. Studies security of LLMs and methods to protect language models from attacks or exploitation.
+    - Relevant: papers on prompt injection defenses, jailbreak prevention, securing LLM deployments, protecting against extraction attacks, or hardening LLM systems against adversarial users.
+    - Not relevant: papers about using LLMs for security applications, or general robustness without security focus.
 
  In suggesting papers to your friend, remember that he enjoys papers on statistical machine learning, and generative modeling in natural language processing.
  Your friend also likes learning about surprising empirical results in language models, as well as clever statistical tricks.
