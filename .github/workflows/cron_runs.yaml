@@ -2,13 +2,12 @@ name: Run daily arxiv
 
 on:
   schedule:
-    # * is a special character in YAML so you have to quote this string
-    - cron:  '0 13 * * *'
+    # Runs daily at 1 PM UTC (weekdays only - arxiv doesn't update on weekends)
+    - cron:  '0 13 * * 1-5'
   workflow_dispatch:
-  
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -39,3 +38,26 @@ jobs:
         name: arxiv-scanner-outputs
         path: out/
         retention-days: 5
+    - name: Save daily archive and commit
+      run: |
+        TODAY=$(date -u '+%Y-%m-%d')
+        # Create date-stamped archive directory
+        mkdir -p papers/$TODAY
+        # Copy outputs to archive
+        if [ -f out/output.json ]; then
+          cp out/output.json papers/$TODAY/
+        fi
+        if [ -f out/output.md ]; then
+          cp out/output.md papers/$TODAY/
+        fi
+        # Commit and push if there are changes
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add out/output.json out/output.md papers/$TODAY/
+        if git diff --cached --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "Papers for $TODAY"
+          git pull --rebase origin main
+          git push
+        fi
