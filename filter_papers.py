@@ -61,7 +61,13 @@ def calc_price(model, usage):
         return (0.03 * usage.prompt_tokens + 0.06 * usage.completion_tokens) / 1000.0
     if (model == "gpt-3.5-turbo") or (model == "gpt-3.5-turbo-1106"):
         return (0.0015 * usage.prompt_tokens + 0.002 * usage.completion_tokens) / 1000.0
+    if "gpt-4.1-mini" in model:
+        return (0.0004 * usage.prompt_tokens + 0.0016 * usage.completion_tokens) / 1000.0
+    if "gpt-4o-mini" in model:
+        return (0.00015 * usage.prompt_tokens + 0.0006 * usage.completion_tokens) / 1000.0
     # Claude pricing (Anthropic API)
+    if "opus-4" in model:
+        return (0.005 * usage.prompt_tokens + 0.025 * usage.completion_tokens) / 1000.0
     if "claude-3-5-sonnet" in model or "claude-3-7-sonnet" in model:
         return (0.003 * usage.prompt_tokens + 0.015 * usage.completion_tokens) / 1000.0
     if "sonnet-4" in model:
