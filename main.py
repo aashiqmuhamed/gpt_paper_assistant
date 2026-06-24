@@ -1,7 +1,10 @@
+import argparse
 import json
 import configparser
 import os
 import time
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from requests import Session
 from typing import TypeVar, Generator
@@ -10,7 +13,10 @@ import io
 from retry import retry
 from tqdm import tqdm
 
-from arxiv_scraper import get_papers_from_arxiv_rss_api
+from arxiv_scraper import (
+    get_papers_from_arxiv_rss_api,
+    get_papers_from_arxiv_api_dated,
+)
 from filter_papers import filter_by_author, filter_by_gpt
 from parse_json_to_md import render_md_string
 from arxiv_scraper import EnhancedJSONEncoder
@@ -169,6 +175,53 @@ def get_papers_from_arxiv(config):
     return paper_set
 
 
+def get_papers_from_arxiv_backfill(start_date, end_date, config):
+    # Backfill variant of get_papers_from_arxiv: fetch via the dated arxiv API
+    # (papers submitted in [start_date, end_date]) instead of the live RSS feed.
+    area_list = config["FILTERING"]["arxiv_category"].split(",")
+    paper_set = set()
+    for area in area_list:
+        papers = get_papers_from_arxiv_api_dated(
+            area.strip(), start_date, end_date, config
+        )
+        paper_set.update(set(papers))
+    if config["OUTPUT"].getboolean("debug_messages"):
+        print("Number of papers (backfill):" + str(len(paper_set)))
+    return paper_set
+
+
+def _prev_weekday_14et(day):
+    # Most recent weekday strictly before `day`, at 14:00 America/New_York -- arxiv's
+    # submission cutoff for an announcement. Returns a tz-aware datetime.
+    d = day - timedelta(days=1)
+    while d.weekday() >= 5:  # skip Sat (5) / Sun (6)
+        d -= timedelta(days=1)
+    return datetime(d.year, d.month, d.day, 14, 0, tzinfo=ZoneInfo("America/New_York"))
+
+
+def compute_backfill_window(args):
+    # Map backfill CLI args to (start_utc, end_utc, header_datetime), where the
+    # window is the arxiv *submission* window whose announcement became the listing
+    # for --date. An explicit --start/--end (date-granularity, UTC) overrides it.
+    if args.start:
+        start = datetime.strptime(args.start, "%Y-%m-%d")
+        end = (
+            datetime.strptime(args.end, "%Y-%m-%d") if args.end else start
+        ).replace(hour=23, minute=59)
+        header = datetime.strptime(args.date or args.start, "%Y-%m-%d")
+        return start, end, header
+    # arxiv announces the listing for date D from submissions between the two most
+    # recent weekday 14:00-ET cutoffs before D -- so a Tuesday listing spans the
+    # whole Fri->Mon weekend, while a normal weekday is a single ~24h window.
+    d = datetime.strptime(args.date, "%Y-%m-%d").date()
+    end_et = _prev_weekday_14et(d)
+    start_et = _prev_weekday_14et(end_et.date())
+    utc = ZoneInfo("UTC")
+    start = start_et.astimezone(utc).replace(tzinfo=None)
+    end = end_et.astimezone(utc).replace(tzinfo=None)
+    return start, end, datetime.strptime(args.date, "%Y-%m-%d")
+
+
 def parse_authors(lines):
     # parse the comma-separated author list, ignoring lines that are empty and starting with #
     author_ids = []
@@ -185,6 +238,20 @@ def parse_authors(lines):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description=(
+            "Daily arxiv recommender. With no arguments it scans today's RSS feed. "
+            "Pass --date (or --start/--end) to backfill a past day via the arxiv "
+            "dated API instead."
+        )
+    )
+    parser.add_argument(
+        "--date", help="listing date to backfill, YYYY-MM-DD (e.g. 2026-06-22)"
+    )
+    parser.add_argument("--start", help="override submittedDate window start, YYYY-MM-DD")
+    parser.add_argument("--end", help="override submittedDate window end, YYYY-MM-DD")
+    args = parser.parse_args()
+
     # now load config.ini
     config = configparser.ConfigParser()
     config.read("configs/config.ini")
@@ -205,7 +272,18 @@ if __name__ == "__main__":
         author_names, author_ids = parse_authors(fopen.readlines())
     author_id_set = set(author_ids)
 
-    papers = list(get_papers_from_arxiv(config))
+    # Fetch papers: dated arxiv API for a backfill, else today's live RSS feed.
+    backfill_date = None
+    if args.date or args.start:
+        start_date, end_date, backfill_date = compute_backfill_window(args)
+        if config["OUTPUT"].getboolean("debug_messages"):
+            print(
+                f"Backfill: listing date {backfill_date.strftime('%Y-%m-%d')}, "
+                f"submissions {start_date} to {end_date}"
+            )
+        papers = list(get_papers_from_arxiv_backfill(start_date, end_date, config))
+    else:
+        papers = list(get_papers_from_arxiv(config))
     # dump all papers for debugging
 
     all_authors = set()
@@ -258,4 +336,4 @@ if __name__ == "__main__":
                 json.dump(selected_papers, outfile, indent=4)
         if config["OUTPUT"].getboolean("dump_md"):
             with open(config["OUTPUT"]["output_path"] + "output.md", "w") as f:
-                f.write(render_md_string(selected_papers))
+                f.write(render_md_string(selected_papers, date=backfill_date))

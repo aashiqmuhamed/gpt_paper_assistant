@@ -70,6 +70,49 @@ def get_papers_from_arxiv_api(area: str, timestamp, last_id) -> List[Paper]:
     return api_papers
 
 
+def get_papers_from_arxiv_api_dated(area, start_date, end_date, config):
+    # Backfill helper: fetch papers SUBMITTED within [start_date, end_date] for a
+    # category via the arxiv REST API. Used for on-demand backfill of a past date,
+    # since the live RSS feed only serves the current announcement. start_date and
+    # end_date are datetimes (UTC); submittedDate uses minute granularity.
+    query = (
+        f"cat:{area} AND submittedDate:["
+        + start_date.strftime("%Y%m%d%H%M")
+        + " TO "
+        + end_date.strftime("%Y%m%d%H%M")
+        + "]"
+    )
+    search = arxiv.Search(
+        query=query,
+        sort_by=arxiv.SortCriterion.SubmittedDate,
+    )
+    # arxiv.Client throttles requests to be a polite API citizen; do NOT bypass it
+    # with raw requests (bursts get HTTP 429).
+    client = arxiv.Client(page_size=200, delay_seconds=3.0, num_retries=5)
+    force_primary = config["FILTERING"].getboolean("force_primary")
+    paper_list = []
+    for result in client.results(search):
+        # mirror the RSS path's force_primary filter: drop papers only cross-listed
+        # into this category (the submittedDate window already excludes replacements).
+        if force_primary and result.primary_category != area:
+            continue
+        authors = [author.name for author in result.authors]
+        summary = unescape(re.sub("\n", " ", result.summary))
+        new_paper = Paper(
+            authors=authors,
+            title=result.title,
+            abstract=summary,
+            arxiv_id=result.get_short_id()[:10],
+        )
+        paper_list.append(new_paper)
+    if (config is not None) and config["OUTPUT"].getboolean("debug_messages"):
+        print(
+            f"{len(paper_list)} papers from arxiv API for {area} "
+            f"submitted {start_date} to {end_date}"
+        )
+    return paper_list
+
+
 def get_papers_from_arxiv_rss(area: str, config: Optional[dict]) -> List[Paper]:
     # get the feed from https://rss.arxiv.org/rss/ and use the updated timestamp to avoid duplicates
     # (the old export.arxiv.org/rss/ host was retired ~2026-06-20 and now serves an empty feed)

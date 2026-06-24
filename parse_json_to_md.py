@@ -42,13 +42,13 @@ def render_title_and_author(paper_entry: dict, idx: int) -> str:
     return paper_string
 
 
-def render_md_string(papers_dict):
+def render_md_string(papers_dict, date=None):
     # header
     with open("configs/paper_topics.txt", "r") as f:
         criterion = f.read()
     output_string = (
         "# Personalized Daily Arxiv Papers "
-        + datetime.today().strftime("%m/%d/%Y")
+        + (date or datetime.today()).strftime("%m/%d/%Y")
         + "\nTotal relevant papers: "
         + str(len(papers_dict))
         + "\n\n"

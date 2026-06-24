@@ -1,0 +1,70 @@
+name: Backfill arxiv papers
+
+# Manually backfill a past date that the daily RSS run missed, using arxiv's
+# dated REST API. Writes only papers/<date>/ (does NOT touch the canonical
+# out/ "latest"); the Publish workflow then surfaces the date on the site.
+
+on:
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "Listing date to backfill (YYYY-MM-DD)"
+        required: true
+      start:
+        description: "Optional: override submittedDate window start (YYYY-MM-DD)"
+        required: false
+      end:
+        description: "Optional: override submittedDate window end (YYYY-MM-DD)"
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.10"
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    - name: Run backfill
+      env:
+        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        S2_KEY: ${{ secrets.S2_KEY }}
+        PYTHONIOENCODING: utf-8
+        LC_ALL: C.UTF-8
+        LANG: C.UTF-8
+      run: |
+        ARGS="--date ${{ inputs.date }}"
+        if [ -n "${{ inputs.start }}" ]; then ARGS="$ARGS --start ${{ inputs.start }}"; fi
+        if [ -n "${{ inputs.end }}" ]; then ARGS="$ARGS --end ${{ inputs.end }}"; fi
+        echo "Running: python main.py $ARGS"
+        python main.py $ARGS
+    - name: Archive backfilled date and commit
+      run: |
+        DATE="${{ inputs.date }}"
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        # Snapshot the produced digest into papers/<date>/ ONLY. Do not commit the
+        # out/ changes (main.py overwrote out/output.* with the backfilled day) so
+        # the canonical "latest" in the repo is preserved.
+        mkdir -p "papers/$DATE"
+        cp out/output.json "papers/$DATE/"
+        cp out/output.md "papers/$DATE/"
+        git checkout -- out/ 2>/dev/null || true
+        git add -f "papers/$DATE/output.json" "papers/$DATE/output.md"
+        if git diff --cached --quiet; then
+          echo "::error::Backfill produced no papers for $DATE. Check the submittedDate window (try --start/--end)."
+          exit 1
+        fi
+        git commit -m "Backfill papers for $DATE"
+        git pull --rebase origin main
+        git push
