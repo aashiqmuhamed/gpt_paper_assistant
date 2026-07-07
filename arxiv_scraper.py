@@ -122,7 +122,20 @@ def get_papers_from_arxiv_rss(area: str, config: Optional[dict]) -> List[Paper]:
     feed = feedparser.parse(
         f"https://rss.arxiv.org/rss/{area}", modified=updated_string
     )
-    if feed.status == 304:
+    # Distinguish a genuine fetch failure from a legitimately empty announcement
+    # (weekend/holiday). A successful fetch is HTTP 200 (fresh feed) or 304 (not
+    # modified); anything else -- a redirect to a dead host (the 2026-06-20
+    # export.arxiv.org breakage returned 301), a 4xx/5xx, or a connection error
+    # (status then absent) -- must fail loudly rather than be silently treated as
+    # "no papers today".
+    status = feed.get("status")
+    if status not in (200, 304):
+        raise RuntimeError(
+            f"arxiv RSS fetch for {area} failed: HTTP status={status}, "
+            f"bozo={feed.get('bozo')} ({feed.get('bozo_exception', '')}). "
+            f"The feed host/format may have changed -- check https://rss.arxiv.org/rss/{area}"
+        )
+    if status == 304:
         if (config is not None) and config["OUTPUT"]["debug_messages"]:
             print("No new papers since " + updated_string + " for " + area)
         # if there are no new papers return an empty list
@@ -130,7 +143,9 @@ def get_papers_from_arxiv_rss(area: str, config: Optional[dict]) -> List[Paper]:
     # get the list of entries
     entries = feed.entries
     if len(feed.entries) == 0:
-        print("No entries found for " + area)
+        # HTTP 200 with no items = arxiv announced nothing today (weekend/holiday);
+        # a legitimate no-op, not a failure.
+        print("No entries found for " + area + " (empty feed -- likely weekend/holiday)")
         return [], None, None
     last_id = feed.entries[0].link.split("/")[-1]
     # parse last modified date

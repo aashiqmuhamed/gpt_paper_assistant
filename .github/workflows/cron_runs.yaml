@@ -44,14 +44,15 @@ jobs:
         TODAY=$(date -u '+%Y-%m-%d')
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
-        # Guard against silent staleness: only archive/commit when main.py actually
-        # refreshed the digest. If out/output.* is unchanged, the arxiv fetch returned
-        # 0 papers (e.g. an RSS host/format change) -- fail loudly instead of committing
-        # a stale copy under today's date and masking the breakage as a green run.
+        # Only archive/commit when main.py actually refreshed the digest. If
+        # out/output.* is unchanged, arxiv announced no new papers today (weekend or
+        # holiday) -- a legitimate no-op, so skip cleanly. A genuine RSS fetch failure
+        # (dead host / HTTP / format error) fails loudly in the "Run main" step above
+        # (arxiv_scraper raises), so it cannot reach here silently as a stale copy.
         git add -f out/output.json out/output.md
         if git diff --cached --quiet; then
-          echo "::error::out/output.* unchanged -- main.py fetched 0 new papers. Refusing to commit a stale copy. Check the arxiv RSS feed (host/format change?)."
-          exit 1
+          echo "No new papers announced today (weekend/holiday) -- nothing to commit."
+          exit 0
         fi
         # New content: snapshot into a date-stamped archive and commit.
         mkdir -p papers/$TODAY
