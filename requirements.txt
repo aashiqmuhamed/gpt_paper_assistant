@@ -1,4 +1,9 @@
-litellm
+# Pinned 2026-08-17: litellm 1.97.0 shipped a broken pydantic Message model
+# (`ChatCompletionReasoningSummaryTextBlock` not fully defined) that crashed GPT
+# scoring in "Run main". 1.96.2 + openai 2.54.0 is the last verified-good combo
+# (daily run of 2026-08-14). Revisit/bump once litellm fixes the regression.
+litellm==1.96.2
+openai==2.54.0
 Levenshtein
 requests~=2.31.0
 tqdm~=4.66.1
